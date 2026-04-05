@@ -29,6 +29,7 @@ import glob
 import os
 import re
 import shutil
+import zipfile
 import time
 import random
 import logging
@@ -528,6 +529,37 @@ def extract_set_id(url: str) -> Optional[str]:
     return codes[0].strip() if codes else None
 
 
+def _find_in_done_folders(set_id: str, script_dir: str, region: str) -> Optional[str]:
+    """
+    Check Collected/ and Uploaded/ folders to see if a set is already done.
+    Returns the path if found, or None.
+    """
+    missing_images_dir = os.path.join(script_dir, "MissingImages")
+    if not os.path.isdir(missing_images_dir):
+        return None
+
+    lang_name = REGION_LANG_FOLDER.get(region, "").strip().lower() if region else ""
+
+    for lang_entry in os.scandir(missing_images_dir):
+        if not lang_entry.is_dir():
+            continue
+        if lang_name and lang_entry.name.strip().lower() != lang_name:
+            continue
+        for sub in os.scandir(lang_entry.path):
+            if not sub.is_dir():
+                continue
+            if sub.name.strip().lower() in ("collected", "uploaded"):
+                # Check for folder or zip with the set name
+                try:
+                    for item in os.scandir(sub.path):
+                        name_no_ext = os.path.splitext(item.name)[0]
+                        if name_no_ext == set_id:
+                            return item.path
+                except PermissionError:
+                    pass
+    return None
+
+
 def find_output_folder(set_id: str, script_dir: str, region: Optional[str] = None) -> Optional[str]:
     """
     Search for a folder named set_id inside any 'Need' subfolder under
@@ -680,6 +712,11 @@ def main() -> None:
                 if output_dir:
                     log.info(f"Auto-detected output folder: {output_dir}")
                 else:
+                    # Check if it's already in Collected/ or Uploaded/ — skip if so
+                    already_done = _find_in_done_folders(set_id, script_dir, extract_region(url))
+                    if already_done:
+                        log.info(f"'{set_id}' already collected at: {already_done} — skipping.")
+                        continue
                     log.info(f"No existing folder found for '{set_id}' — please enter path manually.")
 
         if not output_dir:
@@ -844,6 +881,17 @@ def move_to_collected(output_dir: str, total_failures: int) -> None:
                 log.info(f"  CSV moved → {logs_folder_name}/{os.path.basename(dest_path)}")
     except PermissionError:
         log.warning("Permission error moving CSVs to logs folder — CSVs left in place.")
+
+    # ── Remove any remaining non-PNG files ────────────────────────────────────
+    try:
+        for entry in os.scandir(destination):
+            if entry.is_file() and not entry.name.lower().endswith(".png"):
+                os.remove(entry.path)
+                log.info(f"  Removed non-PNG: {entry.name}")
+    except PermissionError:
+        log.warning("Permission error cleaning non-PNG files.")
+
+    log.info(f"  Set folder ready in Collected/ — run batch_zip.py to package for upload.")
 
 
 if __name__ == "__main__":

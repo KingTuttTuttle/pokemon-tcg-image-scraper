@@ -1,33 +1,44 @@
 # Pokémon TCG Image Scraper & Manager
 
-A collection of Python and Node.js scripts for automatically downloading, organising, and managing Pokémon TCG card images from [asia.pokemon-card.com](https://asia.pokemon-card.com), with integration to the [TCGdex API](https://tcgdex.net).
+A collection of Python and Node.js scripts for automatically downloading, organising, and managing Pokémon TCG card images from multiple official sources, with integration to the [TCGdex API](https://tcgdex.net).
 
-Built to support a card image repository across multiple Asian languages including Japanese, Korean, Chinese (Traditional & Simplified), Thai, and Indonesian.
+Built to support a card image repository across multiple languages including Japanese, Korean, Chinese (Traditional & Simplified), Thai, and Indonesian.
 
 ---
 
 ## What It Does
 
-- Scrapes card images from the official Pokémon TCG Asia website
-- Automatically detects the correct output folder based on the URL
+- Scrapes card images from the official Pokémon TCG Asia website, the official Japanese site, and Pokellector
+- Automatically detects the correct output folder based on the URL region code
 - Filters downloads using TCGdex CSV data so only missing cards are downloaded
 - Organises images by language and set with sequential positional numbering (001.png, 002.png…)
-- Automatically moves completed sets to a `Collected/` folder on 100% success
+- Automatically moves completed sets to `Collected/` on 100% success
+- Packages sets into upload-ready batch zips under 2 GB
+- Cleans zip files of non-image files before upload
 - Moves CSV logs out of image folders so they don't interfere with uploads
-- Checks the TCGdex status page to identify sets that need attention
-- Runs missing image reports across all sets in bulk
 
 ---
 
 ## Scripts
 
+### Scrapers
+
+| Script | Source | Description |
+|---|---|---|
+| `scrape_pokemon_images.py` | asia.pokemon-card.com | Main scraper. Paste one or more URLs, auto-detects language folder, downloads missing card images |
+| `scrape_official_japanese.py` | pokemon-card.com | Scans Japanese Need folders, checks each set against the official API, downloads available sets as JPG |
+| `scrape_pokellector_images.py` | jp.pokellector.com | Scrapes Japanese card images from Pokellector, visits each card detail page to get image URLs |
+
+### Utilities
+
 | Script | Description |
 |---|---|
-| `scrape_pokemon_images.py` | Main scraper. Paste one or more URLs, downloads all card images automatically |
+| `batch_zip.py` | Groups set folders from `Collected/` into upload-ready batch zips (max 1.9 GB each) in `Uploaded/` |
+| `clean_zips.py` | Scans all zips in `Collected/` and `Uploaded/`, removes non-image files, moves CSVs to logs |
+| `move_collection_csvs.py` | Moves CSVs out of `Collected/` set folders into the logs folder. Auto-creates logs and `Uploaded/` folders if missing |
 | `check_missing_images.py` | Reads the TCGdex status page and creates folders for sets with missing images |
 | `run_missing_reports.py` | Runs `missing-images-report.js` across all set folders in bulk |
 | `create_set_folders.py` | Reads TCGdex CSVs and creates matching set folders in the correct language directory |
-| `move_collection_csvs.py` | One-time cleanup — moves CSVs out of Collected set folders into the logs folder |
 | `missing-images-report.js` | Node.js script that queries the TCGdex API and generates a CSV of missing images per set |
 
 ---
@@ -60,6 +71,10 @@ The scripts are designed to work with the following layout. Set it up once and e
 ```
 Missing Images CSVs/
   ├── scrape_pokemon_images.py
+  ├── scrape_official_japanese.py
+  ├── scrape_pokellector_images.py
+  ├── batch_zip.py
+  ├── clean_zips.py
   ├── check_missing_images.py
   ├── run_missing_reports.py
   ├── create_set_folders.py
@@ -71,7 +86,7 @@ Missing Images CSVs/
               ├── Need/
               │     └── SetID/        ← place the TCGdex CSV for this set here
               ├── Collected/          ← sets move here automatically on success
-              ├── Uploaded/
+              ├── Uploaded/           ← batch zips go here, ready for upload
               └── Missing Reports and Collection Logs/
 ```
 
@@ -79,14 +94,14 @@ Missing Images CSVs/
 
 ## Usage
 
-### Scraping Card Images
+### 1. Scraping Card Images (Asia site)
 
 **Mac** (prevents sleep during long runs):
 ```bash
-caffeinate -i python3 scrape_pokemon_images.py
+caffeinate -i python3 "/path/to/scrape_pokemon_images.py"
 ```
 
-**Linux** (prevents sleep during long runs):
+**Linux:**
 ```bash
 systemd-inhibit python3 scrape_pokemon_images.py
 ```
@@ -99,48 +114,62 @@ python scrape_pokemon_images.py
 
 When prompted, paste one or more URLs (one per line) then press Enter on a blank line to start:
 ```
-https://asia.pokemon-card.com/[region]/card-search/list/?expansionCodes=[SetID]
+https://asia.pokemon-card.com/tw/card-search/list/?expansionCodes=SV9
+https://asia.pokemon-card.com/tw/card-search/list/?expansionCodes=SV9a
 ```
 
 The script will:
-1. Automatically detect the correct output folder from the URL
+1. Auto-detect the correct language folder from the URL region code
 2. Load the filter CSV if one exists in the set folder
 3. Download only the missing card images with polite delays
-4. Move the completed set to `Collected/` if everything downloaded successfully
+4. Move completed sets to `Collected/` on success
+5. Skip sets already in `Collected/` or `Uploaded/`
 
-### Checking for Missing Images
-
-```bash
-python3 check_missing_images.py
-```
-
-### Running Bulk Missing Image Reports
+### 2. Scraping Official Japanese Images
 
 ```bash
-python3 run_missing_reports.py
+caffeinate -i python3 "/path/to/scrape_official_japanese.py"
 ```
 
-### Creating Set Folders from CSVs
+Press Enter to auto-scan all folders in `Japanese/Need/` — the script checks each set code against the official API and skips sets not available on the site (older vintage sets). Only sets that return results are downloaded.
+
+### 3. Scraping Pokellector Images
 
 ```bash
-python3 create_set_folders.py
+caffeinate -i python3 "/path/to/scrape_pokellector_images.py"
 ```
 
-### Cleaning Up CSV Logs
+Paste the Pokellector set page URL when prompted.
+
+### 4. Packaging for Upload
+
+Once scraping is complete, run `batch_zip.py` to package all sets in `Collected/` into upload-ready batch zips:
 
 ```bash
-python3 move_collection_csvs.py
+python3 batch_zip.py
 ```
+
+Each batch zip contains set folders with images directly inside — no zip-in-zip. Batches are capped at 1.9 GB to stay safely under common 2 GB upload limits. Re-run safe — sets already included in a previous batch are skipped automatically.
+
+### 5. Cleaning Existing Zips
+
+If you have zips that may contain non-image files (`__MACOSX`, `.DS_Store`, CSVs, etc.):
+
+```bash
+python3 clean_zips.py
+```
+
+Scans all zips in `Collected/` and `Uploaded/` across every language, removes non-image files, and rewrites the zip cleanly.
 
 ---
 
-## Supported Regions
+## Supported Regions (Asia Site)
 
-| URL Region | Language |
+| URL Region | Language Folder |
 |---|---|
-| `/hk/` | Chinese Traditional (Hong Kong) |
-| `/hk-en/` | English (Hong Kong) |
-| `/tw/` | Chinese Simplified (Taiwan) |
+| `/hk/` | Chin (t) |
+| `/hk-en/` | English |
+| `/tw/` | Chinese (simplified) |
 | `/th/` | Thai |
 | `/id/` | Indonesian |
 
@@ -148,13 +177,14 @@ python3 move_collection_csvs.py
 
 ## Notes
 
-- The scraper uses polite delays (2–4 seconds) between downloads to avoid overloading the server
-- If a run is interrupted, simply rerun the command — already downloaded images are skipped automatically
-- The TCGdex API is maintained by a single developer. The bulk report scripts are rate-limited to be considerate of the server (`--concurrency 3 --rps 5`)
+- Scrapers use polite delays (2–4 seconds) between downloads to avoid overloading servers
+- If a run is interrupted, simply rerun — already downloaded images are skipped automatically
+- The TCGdex API is maintained by a single developer. Bulk report scripts are rate-limited (`--concurrency 3 --rps 5`)
+- Older Japanese sets (pre-SV era) are not available on the official Japanese site — the scraper detects and skips these automatically
 
 ---
 
 ## Acknowledgements
 
 Card data provided by [TCGdex](https://tcgdex.net).
-Card images sourced from the official [Pokémon TCG Asia website](https://asia.pokemon-card.com).
+Card images sourced from the official [Pokémon TCG Asia website](https://asia.pokemon-card.com), the official [Japanese Pokémon Card site](https://www.pokemon-card.com), and [Pokellector](https://jp.pokellector.com).
