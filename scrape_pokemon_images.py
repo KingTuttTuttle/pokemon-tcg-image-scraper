@@ -843,8 +843,8 @@ def move_to_collected(output_dir: str, total_failures: int) -> None:
     shutil.move(str(os.path.abspath(output_dir)), destination)
     log.info(f"All cards successful — moved '{set_name}' → Collected/ ✓")
 
-    # ── Ensure Missing Reports and Collection Logs + Uploaded folders exist ──
-    for auto_folder in ["Missing Reports and Collection Logs", "Uploaded"]:
+    # ── Ensure Missing Reports and Collection Logs folder exists ──
+    for auto_folder in ["Missing Reports and Collection Logs"]:
         existing = None
         for entry in os.scandir(lang_folder):
             if entry.is_dir() and entry.name.strip().lower() == auto_folder.lower():

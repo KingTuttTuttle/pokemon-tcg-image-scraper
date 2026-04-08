@@ -41,7 +41,6 @@ import shutil
 import time
 import random
 import logging
-import zipfile
 from io import BytesIO
 from typing import Optional
 
@@ -239,8 +238,7 @@ def move_to_collected(
     """
     On 0 failures:
       - Move the download log CSV → Missing Reports and Collection Logs/
-      - Zip all JPG images          → Collected/{set_code}.zip
-      - Remove the set folder from Need
+      - Move the set folder       → Collected/{set_code}/
     """
     if total_failures > 0:
         log.info(f"\n  {total_failures} card(s) failed — folder left in Need for retry.")
@@ -259,23 +257,13 @@ def move_to_collected(
         shutil.move(log_csv, dest)
         log.info(f"  Log CSV moved → Missing Reports and Collection Logs/")
 
-    # ── Zip images ────────────────────────────────────────────────────────────
-    jpg_files = sorted(
-        (e for e in os.scandir(set_dir)
-         if e.is_file() and e.name.lower().endswith(".jpg")),
-        key=lambda e: e.name,
-    )
-
-    zip_path = os.path.join(collected_dir, f"{set_code}.zip")
-    try:
-        with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_DEFLATED) as zf:
-            for entry in jpg_files:
-                zf.write(entry.path, arcname=os.path.join(set_code, entry.name))
-        log.info(f"  Zipped {len(jpg_files)} image(s) → Collected/{set_code}.zip ✓")
-        shutil.rmtree(set_dir)
-        log.info(f"  Folder removed from Need/")
-    except Exception as e:
-        log.warning(f"  Could not create zip: {e} — folder left in place.")
+    # ── Move folder to Collected ──────────────────────────────────────────────
+    destination = os.path.join(collected_dir, set_code)
+    if os.path.exists(destination):
+        log.warning(f"  '{set_code}' already exists in Collected — folder left in place.")
+        return
+    shutil.move(str(os.path.abspath(set_dir)), destination)
+    log.info(f"  Moved '{set_code}' → Collected/ ✓  (run batch_zip.py to package for upload)")
 
 
 # ─────────────────────────────────────────────────────────────────────────────

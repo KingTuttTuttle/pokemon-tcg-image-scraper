@@ -23,7 +23,6 @@ import glob
 import os
 import re
 import shutil
-import zipfile
 import time
 import random
 import logging
@@ -332,8 +331,8 @@ def move_to_collected(output_dir: str, total_failures: int) -> None:
     lang_folder = os.path.dirname(need_folder)
     set_name    = os.path.basename(os.path.abspath(output_dir))
 
-    # Auto-create Missing Reports and Uploaded if absent
-    for auto_folder in ["Missing Reports and Collection Logs", "Uploaded"]:
+    # Auto-create Missing Reports folder if absent
+    for auto_folder in ["Missing Reports and Collection Logs"]:
         exists = any(
             e.is_dir() and e.name.strip().lower() == auto_folder.lower()
             for e in os.scandir(lang_folder)
@@ -390,21 +389,7 @@ def move_to_collected(output_dir: str, total_failures: int) -> None:
     except PermissionError:
         log.warning("Permission error cleaning non-PNG files.")
 
-    # ── Zip the set folder ────────────────────────────────────────────────────
-    zip_path = os.path.join(collected_folder, f"{set_name}.zip")
-    try:
-        png_files = sorted(
-            e for e in os.scandir(destination)
-            if e.is_file() and e.name.lower().endswith(".jpg")
-        )
-        with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_DEFLATED) as zf:
-            for entry in png_files:
-                zf.write(entry.path, arcname=os.path.join(set_name, entry.name))
-        log.info(f"  Zipped {len(png_files)} image(s) → {set_name}.zip ✓")
-        shutil.rmtree(destination)
-        log.info(f"  Folder removed — zip is ready in Collected/")
-    except Exception as e:
-        log.warning(f"  Could not create zip: {e} — folder left in Collected.")
+    log.info(f"  Set folder ready in Collected/ — run batch_zip.py to package for upload.")
 
 
 # ─────────────────────────────────────────────────────────────────────────────

@@ -456,8 +456,8 @@ def move_to_collected(output_dir: str, total_failures: int) -> None:
     lang_folder = os.path.dirname(need_folder)
     set_name    = os.path.basename(os.path.abspath(output_dir))
 
-    # Auto-create Missing Reports and Uploaded folders if absent
-    for auto_folder in ["Missing Reports and Collection Logs", "Uploaded"]:
+    # Auto-create Missing Reports folder if absent
+    for auto_folder in ["Missing Reports and Collection Logs"]:
         exists = any(
             e.is_dir() and e.name.strip().lower() == auto_folder.lower()
             for e in os.scandir(lang_folder)
