@@ -28,12 +28,12 @@ from typing import Optional
 
 # Root folder containing all language subfolders
 MISSING_IMAGES_DIR = os.path.join(
-    os.path.dirname(os.path.abspath(__file__)), "MissingImages"
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "MissingImages"
 )
 
 # Path to the JS report script
 JS_SCRIPT = os.path.join(
-    os.path.dirname(os.path.abspath(__file__)), "MissingImages", "missing-images-report.js"
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "MissingImages", "missing-images-report.js"
 )
 
 # The name of the subfolder inside each language folder where sets live

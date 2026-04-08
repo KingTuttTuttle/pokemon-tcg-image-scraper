@@ -8,7 +8,7 @@ Built to support a card image repository across multiple languages including Jap
 
 ## What It Does
 
-- Scrapes card images from the official Pokémon TCG Asia website, the official Japanese site, and Pokellector
+- Scrapes card images from the official Pokémon TCG Asia website, the official Japanese site, Pokellector, Serebii, and pcg-search.com
 - Automatically detects the correct output folder based on the URL region code
 - Filters downloads using TCGdex CSV data so only missing cards are downloaded
 - Organises images by language and set with sequential positional numbering (001.png, 002.png…)
@@ -28,6 +28,8 @@ Built to support a card image repository across multiple languages including Jap
 | `scrape_pokemon_images.py` | asia.pokemon-card.com | Main scraper. Paste one or more URLs, auto-detects language folder, downloads missing card images |
 | `scrape_official_japanese.py` | pokemon-card.com | Scans Japanese Need folders, checks each set against the official API, downloads available sets as JPG |
 | `scrape_pokellector_images.py` | jp.pokellector.com | Scrapes Japanese card images from Pokellector, visits each card detail page to get image URLs |
+| `scrape_serebii_images.py` | serebii.net | Scrapes Japanese card images from Serebii, downloads missing card images by set |
+| `scrape_pcgsearch_images.py` | pcg-search.com | Scrapes vintage Japanese sets (PMCG, e, PCG eras). Auto-detects sets from Need folder, downloads images directly — no detail-page visit needed |
 
 ### Utilities
 
@@ -140,6 +142,25 @@ caffeinate -i python3 "/path/to/scrape_pokellector_images.py"
 ```
 
 Paste the Pokellector set page URL when prompted.
+
+### 4. Scraping Serebii Images
+
+```bash
+caffeinate -i python3 "/path/to/scrape_serebii_images.py"
+```
+
+### 5. Scraping PCG Search (Vintage Japanese — PMCG, e, PCG eras)
+
+```bash
+caffeinate -i python3 "/path/to/scrape_pcgsearch_images.py"
+```
+
+Automatically scans your `Japanese/Need/` folder and downloads any sets it recognises from pcg-search.com. No URL input required. Supported sets: PMCG1/3/4/5/6, E1–E5, PCG1–PCG9.
+
+To add a new set: right-click a card image on pcg-search.com, copy the image address, then add one line to `SET_CONFIG` in the script:
+```python
+"SETCODE": ("folder", "prefix", "日本語名"),
+```
 
 ### 4. Packaging for Upload
 

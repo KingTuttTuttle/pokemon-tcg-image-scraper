@@ -36,7 +36,7 @@ import zipfile
 # CONFIG
 # ─────────────────────────────────────────────────────────────────────────────
 
-SCRIPT_DIR      = os.path.dirname(os.path.abspath(__file__))
+SCRIPT_DIR      = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MISSING_IMAGES  = os.path.join(SCRIPT_DIR, "MissingImages")
 MAX_BATCH_BYTES = 1_900 * 1024 * 1024   # 1.9 GB — headroom under 2 GB limit
 

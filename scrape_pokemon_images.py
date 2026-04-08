@@ -668,7 +668,7 @@ def main() -> None:
         log.error("--delay-min must be ≤ --delay-max. Exiting.")
         return
 
-    script_dir = os.path.dirname(os.path.abspath(__file__))
+    script_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
     print("\nPokémon TCG Image Scraper  —  press Ctrl+C at any time to quit.")
 

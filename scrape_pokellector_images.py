@@ -29,6 +29,8 @@ import random
 import logging
 from typing import Optional, List, Dict, Set
 from urllib.parse import urljoin
+from PIL import Image
+from io import BytesIO
 
 # Enables arrow keys and backspace inside input() prompts
 try:
@@ -240,7 +242,7 @@ def download_image(
     delay_min: float,
     delay_max: float,
 ) -> bool:
-    """Download one image and save it to output_dir. Returns True on success."""
+    """Download PNG, convert to JPG, save. Returns True on success."""
     filepath = os.path.join(output_dir, filename)
 
     if os.path.exists(filepath):
@@ -251,9 +253,8 @@ def download_image(
     if not resp:
         return False
 
-    with open(filepath, "wb") as fh:
-        for chunk in resp.iter_content(chunk_size=8192):
-            fh.write(chunk)
+    img = Image.open(BytesIO(resp.content)).convert("RGB")
+    img.save(filepath, "JPEG", quality=95, optimize=True)
 
     file_size_kb = os.path.getsize(filepath) / 1024
     log.info(f"  Saved {filename}  ({file_size_kb:.1f} KB)  ← {img_url}")
@@ -383,7 +384,7 @@ def move_to_collected(output_dir: str, total_failures: int) -> None:
     # ── Remove any remaining non-PNG files ────────────────────────────────────
     try:
         for entry in os.scandir(destination):
-            if entry.is_file() and not entry.name.lower().endswith(".png"):
+            if entry.is_file() and not entry.name.lower().endswith(".jpg"):
                 os.remove(entry.path)
                 log.info(f"  Removed non-PNG: {entry.name}")
     except PermissionError:
@@ -394,7 +395,7 @@ def move_to_collected(output_dir: str, total_failures: int) -> None:
     try:
         png_files = sorted(
             e for e in os.scandir(destination)
-            if e.is_file() and e.name.lower().endswith(".png")
+            if e.is_file() and e.name.lower().endswith(".jpg")
         )
         with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_DEFLATED) as zf:
             for entry in png_files:
@@ -411,7 +412,7 @@ def move_to_collected(output_dir: str, total_failures: int) -> None:
 # ─────────────────────────────────────────────────────────────────────────────
 
 def main() -> None:
-    script_dir = os.path.dirname(os.path.abspath(__file__))
+    script_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
     print("\nPokémon TCG Pokellector Scraper  —  press Ctrl+C at any time to quit.")
     print("Paste set page URLs from jp.pokellector.com")
@@ -496,7 +497,7 @@ def main() -> None:
         logo_url = get_logo_url(html)
         if logo_url:
             log.info(f"\nDownloading set logo...")
-            download_image(session, logo_url, output_dir, "logo.png", 1.0, 2.0)
+            download_image(session, logo_url, output_dir, "logo.jpg", 1.0, 2.0)
         else:
             log.warning("No set logo found on this page.")
 
@@ -514,7 +515,7 @@ def main() -> None:
             for card in cards:
                 card_number = card["card_number"]
                 detail_url  = card["detail_url"]
-                filename    = f"{card_number:03d}.png"
+                filename    = f"{card_number:03d}.jpg"
 
                 # CSV filter: skip cards not in our list
                 if required_positions is not None and card_number not in required_positions:

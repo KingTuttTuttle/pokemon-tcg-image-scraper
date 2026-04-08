@@ -24,7 +24,7 @@ import zipfile
 # CONFIG
 # ─────────────────────────────────────────────────────────────────────────────
 
-SCRIPT_DIR       = os.path.dirname(os.path.abspath(__file__))
+SCRIPT_DIR       = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MISSING_IMAGES   = os.path.join(SCRIPT_DIR, "MissingImages")
 LOGS_FOLDER_NAME = "Missing Reports and Collection Logs"
 

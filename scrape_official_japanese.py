@@ -104,8 +104,10 @@ def create_session() -> requests.Session:
 # HELPERS
 # ─────────────────────────────────────────────────────────────────────────────
 
-def polite_delay(delay_min: float, delay_max: float) -> None:
-    time.sleep(random.uniform(delay_min, delay_max))
+def polite_delay(delay_min: float = DEFAULT_DELAY_MIN, delay_max: float = DEFAULT_DELAY_MAX) -> None:
+    delay = random.uniform(delay_min, delay_max)
+    log.info(f"  Sleeping for {delay:.2f} seconds...")
+    time.sleep(delay)
 
 
 def fetch_with_retry(
@@ -366,7 +368,9 @@ def scrape_set(
     session: requests.Session,
     set_code: str,
     output_dir: str,
-    required_positions: Optional[Set[int]],
+    delay_min: float,
+    delay_max: float,
+    required_positions: Optional[Set[int]] = None,
 ) -> int:
     """
     Download all cards for a set from the official API.
@@ -426,8 +430,12 @@ def scrape_set(
                     continue
 
                 success = download_image(
-                    session, img_url, output_dir, filename,
-                    DEFAULT_DELAY_MIN, DEFAULT_DELAY_MAX
+                    session, 
+                    img_url, 
+                    output_dir, 
+                    filename,
+                    delay_min, 
+                    delay_max,
                 )
 
                 if not success:
@@ -449,7 +457,7 @@ def scrape_set(
                 break
 
             page += 1
-            polite_delay(1.0, 2.0)
+            polite_delay(delay_min, delay_max)
 
     finally:
         csv_file.close()
@@ -462,7 +470,7 @@ def scrape_set(
 # ─────────────────────────────────────────────────────────────────────────────
 
 def main() -> None:
-    script_dir  = os.path.dirname(os.path.abspath(__file__))
+    script_dir  = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     need_folder = find_japanese_need_folder(script_dir)
 
     if not need_folder:
@@ -505,7 +513,7 @@ def main() -> None:
         else:
             skipped_sets.append(code)
             log.info(f"  ✗ {code} — not on official site, skipping")
-        time.sleep(0.5)  # light delay between API checks
+        polite_delay(DEFAULT_DELAY_MIN, DEFAULT_DELAY_MAX)
 
     print(f"\n{'─' * 60}")
     print(f"Valid sets to download : {len(valid_sets)}")
@@ -538,7 +546,14 @@ def main() -> None:
         if required_positions is None:
             log.info("No filter CSV — all cards will be downloaded.")
 
-        total_failures = scrape_set(session, set_code, output_dir, required_positions)
+        total_failures = scrape_set(
+            session, 
+            set_code, 
+            output_dir, 
+            DEFAULT_DELAY_MIN,
+            DEFAULT_DELAY_MAX,
+            required_positions,
+        )
 
         log.info(f"\nDone. Saved to: {os.path.abspath(output_dir)}")
         move_to_collected(output_dir, total_failures)

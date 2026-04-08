@@ -41,7 +41,7 @@ STATUS_URL = "https://api.tcgdex.net/status"
 # This assumes check_missing_images.py sits in the same folder as MissingImages/.
 # If that is not the case, replace the path below with the full path.
 MISSING_IMAGES_DIR = os.path.join(
-    os.path.dirname(os.path.abspath(__file__)), "MissingImages"
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "MissingImages"
 )
 
 # Languages to skip entirely.
